@@ -62,15 +62,15 @@ func (c KeycloakWebAuthClient) Register(ctx context.Context, user gocloak.User, 
 		return nil, err
 	}
 
-	userToken := token.AccessToken
+	serviceAccountToken := token.AccessToken
 
-	userId, err := c.kk.CreateUser(ctx, userToken, c.realm, user)
+	userId, err := c.kk.CreateUser(ctx, serviceAccountToken, c.realm, user)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = c.kk.SetPassword(ctx, userToken, userId, c.realm, password, false)
+	err = c.kk.SetPassword(ctx, serviceAccountToken, userId, c.realm, password, false)
 	if err != nil {
 		return nil, err
 	}
