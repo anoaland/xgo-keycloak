@@ -47,33 +47,57 @@ func (c KeycloakWebAuthClient) RefreshToken(ctx context.Context, refreshToken st
 	return c.kk.RefreshToken(ctx, refreshToken, c.clientId, c.clientSecret, c.realm)
 }
 
+// Register registers a new user in Keycloak.
+//
+// ctx - the context.Context for the operation.
+// user - the user details to be registered.
+// password - the password for the new user.
+// Returns the user ID and any error that occurs.
 func (c KeycloakWebAuthClient) Register(ctx context.Context, user gocloak.User, password string) (*string, error) {
 
-	token, err := c.kk.GetToken(ctx, c.realm, gocloak.TokenOptions{
-		ClientID:     &c.clientId,
-		ClientSecret: &c.clientSecret,
-		GrantType:    gocloak.StringP("client_credentials"),
-	})
+	serviceAccountToken, err := c.getServiceToken(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	// this works as well
-	// token, err := auth.client.LoginAdmin(c, "dd-admin", "dd-admin", realm)
+	userId, err := c.kk.CreateUser(ctx, *serviceAccountToken, c.realm, user)
 
 	if err != nil {
 		return nil, err
 	}
 
-	serviceAccountToken := token.AccessToken
-
-	userId, err := c.kk.CreateUser(ctx, serviceAccountToken, c.realm, user)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = c.kk.SetPassword(ctx, serviceAccountToken, userId, c.realm, password, false)
+	err = c.kk.SetPassword(ctx, *serviceAccountToken, userId, c.realm, password, false)
 	if err != nil {
 		return nil, err
 	}
 
 	return &userId, nil
+}
+
+func (c KeycloakWebAuthClient) DeleteUser(ctx context.Context, userId string) error {
+	serviceAccountToken, err := c.getServiceToken(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = c.kk.DeleteUser(ctx, *serviceAccountToken, c.realm, userId)
+
+	return err
+}
+
+func (c KeycloakWebAuthClient) getServiceToken(ctx context.Context) (*string, error) {
+	// this works as well
+	// token, err := auth.client.LoginAdmin(c, "dd-admin", "dd-admin", realm)
+
+	jwt, err := c.kk.GetToken(ctx, c.realm, gocloak.TokenOptions{
+		ClientID:     &c.clientId,
+		ClientSecret: &c.clientSecret,
+		GrantType:    gocloak.StringP("client_credentials"),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &jwt.AccessToken, nil
 }
