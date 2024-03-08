@@ -8,11 +8,12 @@ import (
 )
 
 type KeycloakWebAuthClient struct {
-	kk           *gocloak.GoCloak
-	url          string
-	realm        string
-	clientId     string
-	clientSecret string
+	kk              *gocloak.GoCloak
+	url             string
+	realm           string
+	clientId        string
+	clientSecret    string
+	jwtSignatureKey []byte
 }
 
 func New(url string, realm string, clientId string, clientSecret string) *KeycloakWebAuthClient {
@@ -45,6 +46,14 @@ func (c KeycloakWebAuthClient) Login(ctx context.Context, usernameOrEmail string
 
 func (c KeycloakWebAuthClient) RefreshToken(ctx context.Context, refreshToken string) (*gocloak.JWT, error) {
 	return c.kk.RefreshToken(ctx, refreshToken, c.clientId, c.clientSecret, c.realm)
+}
+
+func (c KeycloakWebAuthClient) RevokeRefreshToken(ctx context.Context, refreshToken string) error {
+	return c.kk.RevokeToken(ctx, c.realm, c.clientId, c.clientSecret, refreshToken)
+}
+
+func (c KeycloakWebAuthClient) RevokeToken(ctx context.Context, refreshToken string) error {
+	return c.kk.RevokeToken(ctx, c.realm, c.clientId, c.clientSecret, refreshToken)
 }
 
 // Register registers a new user in Keycloak.
