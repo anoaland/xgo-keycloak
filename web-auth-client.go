@@ -2,18 +2,18 @@ package auth
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/anoaland/xgo/auth"
 )
 
 type KeycloakWebAuthClient struct {
-	kk              *gocloak.GoCloak
-	url             string
-	realm           string
-	clientId        string
-	clientSecret    string
-	jwtSignatureKey []byte
+	kk           *gocloak.GoCloak
+	url          string
+	realm        string
+	clientId     string
+	clientSecret string
 }
 
 func New(url string, realm string, clientId string, clientSecret string) *KeycloakWebAuthClient {
@@ -40,6 +40,52 @@ func (c KeycloakWebAuthClient) GetUserFromToken(token string) (*auth.AppUser, er
 	return kuser.AsAppUser(), nil
 }
 
+func (c KeycloakWebAuthClient) GetUserByUserID(ctx context.Context, id string) (*gocloak.User, error) {
+	serviceAccountToken, err := c.getServiceToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := c.kk.GetUserByID(ctx, *serviceAccountToken, c.realm, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+
+}
+
+/*
+@Param userId must be a valid user ID and lower case!
+*/
+func (c KeycloakWebAuthClient) UserHasPassword(ctx context.Context, userId string) (bool, error) {
+	serviceAccountToken, err := c.getServiceToken(ctx)
+	if err != nil {
+		return false, err
+	}
+	credentials, err := c.kk.GetCredentials(ctx, *serviceAccountToken, c.realm, userId)
+
+	if err != nil {
+		return false, err
+	}
+
+	hasPassword := false
+
+	// Iterate through credentials and check if type is "password"
+	for _, cred := range credentials {
+
+		typePassword := "password"
+		if *cred.Type == typePassword {
+
+			hasPassword = true
+
+		}
+	}
+
+	return hasPassword, nil
+
+}
+
 func (c KeycloakWebAuthClient) Login(ctx context.Context, usernameOrEmail string, password string) (*gocloak.JWT, error) {
 	return c.kk.Login(ctx, c.clientId, c.clientSecret, c.realm, usernameOrEmail, password)
 }
@@ -48,12 +94,8 @@ func (c KeycloakWebAuthClient) RefreshToken(ctx context.Context, refreshToken st
 	return c.kk.RefreshToken(ctx, refreshToken, c.clientId, c.clientSecret, c.realm)
 }
 
-func (c KeycloakWebAuthClient) RevokeRefreshToken(ctx context.Context, refreshToken string) error {
-	return c.kk.RevokeToken(ctx, c.realm, c.clientId, c.clientSecret, refreshToken)
-}
-
-func (c KeycloakWebAuthClient) RevokeToken(ctx context.Context, refreshToken string) error {
-	return c.kk.RevokeToken(ctx, c.realm, c.clientId, c.clientSecret, refreshToken)
+func (c KeycloakWebAuthClient) RevokeToken(ctx context.Context, token string) error {
+	return c.kk.RevokeToken(ctx, c.realm, c.clientId, c.clientSecret, token)
 }
 
 // Register registers a new user in Keycloak.
@@ -83,6 +125,25 @@ func (c KeycloakWebAuthClient) Register(ctx context.Context, user gocloak.User, 
 	return &userId, nil
 }
 
+/*
+@Param userId must be a valid user ID and lower case!
+*/
+func (c KeycloakWebAuthClient) SetPasswordUser(ctx context.Context, userId string, password string) error {
+	serviceAccountToken, err := c.getServiceToken(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = c.kk.SetPassword(ctx, *serviceAccountToken, userId, c.realm, password, false)
+	// err = c.SetPasswordByHttpReq(*serviceAccountToken, userId, password)
+	if err != nil {
+		fmt.Println("❌ ERROR_H2H_KEYCLOAK_SET_PASSWORD_HTTP_REQUEST " + err.Error())
+		return err
+	}
+
+	return nil
+}
+
 func (c KeycloakWebAuthClient) DeleteUser(ctx context.Context, userId string) error {
 	serviceAccountToken, err := c.getServiceToken(ctx)
 	if err != nil {
@@ -95,6 +156,7 @@ func (c KeycloakWebAuthClient) DeleteUser(ctx context.Context, userId string) er
 }
 
 func (c KeycloakWebAuthClient) getServiceToken(ctx context.Context) (*string, error) {
+
 	// this works as well
 	// token, err := auth.client.LoginAdmin(c, "dd-admin", "dd-admin", realm)
 
