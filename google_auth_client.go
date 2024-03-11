@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"log"
 
+	"github.com/anoaland/xgo"
 	"github.com/anoaland/xgo/utils"
 	"github.com/gofiber/fiber/v2"
 )
@@ -15,15 +16,15 @@ func (c KeycloakWebAuthClient) LoginWithGoogle(ctx context.Context, googleToken 
 	googleRes, err := c.GoogleAuth(googleToken)
 
 	if err != nil {
-		fmt.Println("❌ ERROR_H2H_KEYCLOAK_GOOGLE_AUTH " + err.Error())
-		return nil, err
+		log.Println("❌ ERROR_H2H_KEYCLOAK_GOOGLE_AUTH " + err.Error())
+		return nil, xgo.NewHttpInternalError("ERROR_H2H_KEYCLOAK_GOOGLE_AUTH", err)
 	}
 
 	user, err := c.kk.GetUserInfo(ctx, googleRes.AccessToken, c.realm)
 
 	if err != nil {
-		fmt.Println("❌ ERROR_H2H_KEYCLOAK_GET_USER_INFO " + err.Error())
-		return nil, err
+		return nil, xgo.NewHttpInternalError("ERROR_H2H_KEYCLOAK_GET_USER_INFO", err)
+
 	}
 
 	// get token exchange
@@ -41,7 +42,7 @@ func (c KeycloakWebAuthClient) LoginWithGoogle(ctx context.Context, googleToken 
 func (c KeycloakWebAuthClient) GoogleAuth(token string) (*TokenSuccessResponse, error) {
 
 	serviceUrl := c.url + "realms/" + c.realm + "/protocol/openid-connect/token"
-	fmt.Println("🔥 h2h url : " + serviceUrl)
+	log.Println("🔥 h2h url : " + serviceUrl)
 
 	args := fiber.AcquireArgs()
 	args.Set("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange")
@@ -68,8 +69,13 @@ func (c KeycloakWebAuthClient) GoogleAuth(token string) (*TokenSuccessResponse, 
 	if err != nil {
 		respErr := new(GoogleAuthErrorResponse)
 		json.Unmarshal([]byte(err.Error()), &respErr)
-		fmt.Println(" ❌ ERROR URL KC GOOGLE : " + err.Error())
-		return nil, errors.New(*respErr.ErrorDescription)
+		log.Println(" ❌ ERROR URL KC GOOGLE : " + err.Error())
+
+		if respErr.Error != nil {
+			return nil, errors.New(*respErr.Error)
+		}
+		return nil, err
+
 	}
 
 	return clientResp.(*TokenSuccessResponse), nil
