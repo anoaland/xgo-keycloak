@@ -5,8 +5,12 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/anoaland/xgo/auth"
 )
+
+type User interface {
+	AsAppUser(payload *gocloak.UserInfo) any
+	any
+}
 
 type KeycloakWebAuthClient struct {
 	kk           *gocloak.GoCloak
@@ -14,9 +18,10 @@ type KeycloakWebAuthClient struct {
 	realm        string
 	clientId     string
 	clientSecret string
+	mapUser      User
 }
 
-func New(url string, realm string, clientId string, clientSecret string) *KeycloakWebAuthClient {
+func New(url string, realm string, clientId string, clientSecret string, mapUser User) *KeycloakWebAuthClient {
 	kk := gocloak.NewClient(url)
 
 	return &KeycloakWebAuthClient{
@@ -25,19 +30,18 @@ func New(url string, realm string, clientId string, clientSecret string) *Keyclo
 		realm:        realm,
 		clientId:     clientId,
 		clientSecret: clientSecret,
+		mapUser:      mapUser,
 	}
 }
 
-func (c KeycloakWebAuthClient) GetUserFromToken(token string) (*auth.AppUser, error) {
+func (c KeycloakWebAuthClient) GetUserFromToken(token string) (interface{}, error) {
 	user, err := c.kk.GetUserInfo(context.Background(), token, c.realm)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var kuser = KeycloakAppUser{user}
-
-	return kuser.AsAppUser(), nil
+	return c.mapUser.AsAppUser(user), nil
 }
 
 func (c KeycloakWebAuthClient) GetUserByUserID(ctx context.Context, id string) (*gocloak.User, error) {
