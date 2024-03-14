@@ -1,5 +1,7 @@
 package auth
 
+import "github.com/Nerzal/gocloak/v13"
+
 type GoogleAuthErrorResponse struct {
 	Error            *string `json:"error"`
 	ErrorDescription *string `json:"error_description"`
@@ -23,7 +25,7 @@ type BasicUser struct {
 	Username string
 }
 type JWTGoogleWithUser struct {
-	User BasicUser
+	User gocloak.UserInfo
 	JWT  TokenSuccessResponse
 }
 

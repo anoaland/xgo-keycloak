@@ -30,12 +30,8 @@ func (c KeycloakWebAuthClient) LoginWithGoogle(ctx context.Context, googleToken 
 	// get token exchange
 
 	return &JWTGoogleWithUser{
-		JWT: *googleRes,
-		User: BasicUser{
-			ID:       *user.Sub,
-			Email:    *user.Email,
-			Username: *user.PreferredUsername,
-		},
+		JWT:  *googleRes,
+		User: *user,
 	}, nil
 }
 

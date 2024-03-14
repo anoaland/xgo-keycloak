@@ -44,6 +44,24 @@ func (c KeycloakWebAuthClient) GetUserFromToken(token string) (interface{}, erro
 	return c.mapUser.AsAppUser(user), nil
 }
 
+func (c KeycloakWebAuthClient) VerifyEmail(ID string) error {
+	serviceAccountToken, err := c.getServiceToken(context.Background())
+	if err != nil {
+		return err
+	}
+	verifyEmail := true
+	err = c.kk.UpdateUser(context.Background(), *serviceAccountToken, c.realm, gocloak.User{
+		ID:            &ID,
+		EmailVerified: &verifyEmail,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c KeycloakWebAuthClient) GetUserByUserID(ctx context.Context, id string) (*gocloak.User, error) {
 	serviceAccountToken, err := c.getServiceToken(ctx)
 	if err != nil {
