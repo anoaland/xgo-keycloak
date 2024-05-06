@@ -157,7 +157,6 @@ func (c KeycloakWebAuthClient) SetPasswordUser(ctx context.Context, userId strin
 	}
 
 	err = c.kk.SetPassword(ctx, *serviceAccountToken, userId, c.realm, password, false)
-	// err = c.SetPasswordByHttpReq(*serviceAccountToken, userId, password)
 	if err != nil {
 		fmt.Println("❌ ERROR_H2H_KEYCLOAK_SET_PASSWORD_HTTP_REQUEST " + err.Error())
 		return err
