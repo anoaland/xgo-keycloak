@@ -60,7 +60,7 @@ func (c KeycloakWebAuthClient) GetUserByUsername(username string) (*UserSuccessR
 	res := clientResp.([]interface{})
 
 	if len(res) == 0 {
-		return nil, xgo.NewHttpError("User not found", fiber.StatusNotFound)
+		return nil, xgo.NewHttpError("email tidak ditemukan, silahkan mendaftarkan email terlebih dahulu", fiber.StatusNotFound)
 	}
 
 	user := res[0].(map[string]interface{})
