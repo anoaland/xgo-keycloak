@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 
+	"github.com/anoaland/xgo"
 	"github.com/anoaland/xgo/utils"
 	"github.com/gofiber/fiber/v2"
 )
@@ -34,8 +34,6 @@ func (c KeycloakWebAuthClient) GetUserByUsername(username string) (*UserSuccessR
 
 	serviceUrl := c.url + "admin/realms/" + c.realm + "/users?username=" + username
 
-	fmt.Println(serviceUrl, "<<< iki service url")
-
 	httpClient := utils.HttpClient{
 		Url:             serviceUrl,
 		Method:          fiber.MethodGet,
@@ -44,7 +42,6 @@ func (c KeycloakWebAuthClient) GetUserByUsername(username string) (*UserSuccessR
 		ResponseSuccess: []UserSuccessResponse{},
 		ResponseError:   UserErrorResponse{},
 		ErrorPrefix:     "E_AUTH_GET_USER_BY_USERNAME",
-		LogRequest:      true,
 	}
 
 	clientResp, err := httpClient.Send()
@@ -63,7 +60,7 @@ func (c KeycloakWebAuthClient) GetUserByUsername(username string) (*UserSuccessR
 	res := clientResp.([]interface{})
 
 	if len(res) == 0 {
-		return nil, errors.New("User not found")
+		return nil, xgo.NewHttpError("User not found", fiber.StatusNotFound)
 	}
 
 	user := res[0].(map[string]interface{})
