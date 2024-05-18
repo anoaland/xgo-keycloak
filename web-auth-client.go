@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v13"
+	"github.com/gofiber/fiber/v2"
 )
 
 type User interface {
@@ -38,6 +39,9 @@ func (c KeycloakWebAuthClient) GetUserFromToken(token string) (interface{}, erro
 	user, err := c.kk.GetUserInfo(context.Background(), token, c.realm)
 
 	if err != nil {
+		if err.Error() == "401 Unauthorized" {
+			return nil, fiber.ErrUnauthorized
+		}
 		return nil, err
 	}
 
