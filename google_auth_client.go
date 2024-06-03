@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"log"
 
 	"github.com/anoaland/xgo"
@@ -17,6 +17,9 @@ func (c KeycloakWebAuthClient) LoginWithGoogle(ctx context.Context, googleToken 
 
 	if err != nil {
 		log.Println("❌ ERROR_H2H_KEYCLOAK_GOOGLE_AUTH " + err.Error())
+		if err.Error() == "User already exists" {
+			return nil, err
+		}
 		return nil, xgo.NewHttpInternalError("ERROR_H2H_KEYCLOAK_GOOGLE_AUTH", err)
 	}
 
@@ -67,12 +70,175 @@ func (c KeycloakWebAuthClient) GoogleAuth(token string) (*TokenSuccessResponse, 
 		json.Unmarshal([]byte(err.Error()), &respErr)
 		log.Println(" ❌ ERROR URL KC GOOGLE : " + err.Error())
 
+		if respErr.ErrorDescription != nil {
+			return nil, fmt.Errorf(*respErr.ErrorDescription)
+		}
+
 		if respErr.Error != nil {
-			return nil, errors.New(*respErr.Error)
+			return nil, err
 		}
 		return nil, err
 
 	}
 
 	return clientResp.(*TokenSuccessResponse), nil
+}
+
+func (c KeycloakWebAuthClient) GetUserInfoGoogle(token string) (*GoogleUserInfoResponse, error) {
+
+	serviceUrl := "https://www.googleapis.com/oauth2/v2/userinfo"
+	log.Println("🔥 h2h url : " + serviceUrl)
+
+	headers := []utils.HttpClientHeaders{}
+
+	headers = append(headers, utils.AuthorizationHeader(token))
+
+	httpClient := utils.HttpClient{
+		Url:             serviceUrl,
+		Method:          fiber.MethodGet,
+		Headers:         headers,
+		Payload:         nil,
+		ResponseSuccess: &GoogleUserInfoResponse{},
+		ResponseError:   &GoogleUserInfoErrorResponse{},
+		ErrorPrefix:     "E_OAUTH_USER_INFO_GOOGLE",
+	}
+
+	httpClient.Headers = append(httpClient.Headers, utils.ContentTypeFormHeader())
+
+	clientResp, err := httpClient.Send()
+	if err != nil {
+		respErr := new(GoogleAuthErrorResponse)
+		json.Unmarshal([]byte(err.Error()), &respErr)
+		log.Println(" ❌ E_OAUTH_USER_INFO_GOOGLE" + err.Error())
+
+		if respErr.ErrorDescription != nil {
+			return nil, fmt.Errorf(*respErr.ErrorDescription)
+		}
+
+		if respErr.Error != nil {
+			return nil, err
+		}
+		return nil, err
+
+	}
+
+	return clientResp.(*GoogleUserInfoResponse), nil
+}
+
+func (c KeycloakWebAuthClient) CheckFederationGoogle(userId string) (bool, error) {
+	serviceAccountToken, err := c.getServiceToken(context.Background())
+	if err != nil {
+		return false, err
+	}
+
+	federatedIdentities, err := c.GetFederatedIdentityKeycloack(*serviceAccountToken, userId)
+	if err != nil {
+		return false, err
+	}
+
+	for _, federatedIdentity := range *federatedIdentities {
+		if federatedIdentity.IdentityProvider == "google" {
+			return true, nil
+		}
+	}
+
+	return false, nil
+
+}
+
+func (c KeycloakWebAuthClient) GetFederatedIdentityKeycloack(token string, userId string) (*[]UserFederationKeycloack, error) {
+
+	serviceUrl := c.url + "admin/realms/" + c.realm + "/users/" + userId + "/federated-identity"
+	log.Println("🔥 h2h url : " + serviceUrl)
+
+	headers := []utils.HttpClientHeaders{}
+
+	headers = append(headers, utils.AuthorizationHeader(token))
+
+	httpClient := utils.HttpClient{
+		Url:             serviceUrl,
+		Method:          fiber.MethodGet,
+		Headers:         headers,
+		Payload:         nil,
+		ResponseSuccess: &[]UserFederationKeycloack{},
+		ResponseError:   &GoogleAuthErrorResponse{},
+		ErrorPrefix:     "E_OAUTH_KEYCLOACK_GET_FEDERATION_GOOGLE",
+	}
+
+	httpClient.Headers = append(httpClient.Headers, utils.ContentTypeFormHeader())
+
+	clientResp, err := httpClient.Send()
+	if err != nil {
+		respErr := new(GoogleAuthErrorResponse)
+		json.Unmarshal([]byte(err.Error()), &respErr)
+		log.Println(" ❌ E_OAUTH_KEYCLOACK_GET_FEDERATION_GOOGLE" + err.Error())
+
+		if respErr.ErrorDescription != nil {
+			return nil, fmt.Errorf(*respErr.ErrorDescription)
+		}
+
+		if respErr.Error != nil {
+			return nil, err
+		}
+		return nil, err
+
+	}
+
+	return clientResp.(*[]UserFederationKeycloack), nil
+}
+
+func (c KeycloakWebAuthClient) FederationGoogle(userId string, userIdGoogle string, usernameGoogle string) error {
+	serviceUrl := c.url + "admin/realms/" + c.realm + "/users/" + userId + "/federated-identity/google"
+	log.Println("🔥 h2h url : " + serviceUrl)
+
+	serviceAccountToken, err := c.getServiceToken(context.Background())
+	if err != nil {
+		fmt.Println(" ❌ E_OAUTH_KEYCLOACK_GET_SERVICE_TOKEN" + err.Error())
+		return err
+	}
+
+	payload := UserFederationRequestKeycloack{
+		UserID:   userIdGoogle,
+		UserName: usernameGoogle,
+	}
+
+	payloadMarshal, err := json.Marshal(payload)
+	if err != nil {
+		fmt.Println(" ❌ E_OAUTH_KEYCLOACK_MARSHAL_FEDERATION_GOOGLE" + err.Error())
+		return err
+	}
+
+	headers := []utils.HttpClientHeaders{}
+
+	headers = append(headers, utils.AuthorizationHeader(*serviceAccountToken))
+	headers = append(headers, utils.JsonContentTypeHeader())
+
+	httpClient := utils.HttpClient{
+		Url:             serviceUrl,
+		Method:          fiber.MethodPost,
+		Headers:         headers,
+		Payload:         payloadMarshal,
+		ResponseSuccess: nil,
+		ResponseError:   &GoogleAuthErrorResponse{},
+		ErrorPrefix:     "E_OAUTH_KEYCLOACK_POST_FEDERATION_GOOGLE",
+	}
+
+	_, err = httpClient.Send()
+	if err != nil {
+		respErr := new(GoogleAuthErrorResponse)
+		json.Unmarshal([]byte(err.Error()), &respErr)
+		log.Println(" ❌ E_OAUTH_KEYCLOACK_GET_FEDERATION_GOOGLE" + err.Error())
+
+		if respErr.ErrorDescription != nil {
+			return fmt.Errorf(*respErr.ErrorDescription)
+		}
+
+		if respErr.Error != nil {
+			return err
+		}
+		return err
+
+	}
+
+	return nil
 }
