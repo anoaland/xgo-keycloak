@@ -12,9 +12,10 @@ import (
 )
 
 type UserSuccessResponse struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	ID            string `json:"id"`
+	Username      string `json:"username"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"emailVerified"`
 }
 
 type UserErrorResponse struct {
@@ -65,8 +66,9 @@ func (c KeycloakWebAuthClient) GetUserByUsername(username string) (*UserSuccessR
 
 	user := res[0].(map[string]interface{})
 	return &UserSuccessResponse{
-		ID:       user["id"].(string),
-		Username: user["username"].(string),
-		Email:    user["email"].(string),
+		ID:            user["id"].(string),
+		Username:      user["username"].(string),
+		Email:         user["email"].(string),
+		EmailVerified: user["emailVerified"].(bool),
 	}, nil
 }

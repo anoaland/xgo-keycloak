@@ -7,6 +7,27 @@ type GoogleAuthErrorResponse struct {
 	ErrorDescription *string `json:"error_description"`
 }
 
+type GoogleUserInfoErrorResponse struct {
+	Error *GoogleUserInfoObjectErrorResponse `json:"error"`
+}
+
+type GoogleUserInfoResponse struct {
+	ID            string `json:"id"`
+	Email         string `json:"email"`
+	VerifiedEmail bool   `json:"verified_email"`
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Picture       string `json:"picture"`
+	Locale        string `json:"locale"`
+}
+
+type GoogleUserInfoObjectErrorResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Status  string `json:"status"`
+}
+
 type TokenSuccessResponse struct {
 	AccessToken      string `json:"access_token"`
 	ExpiresIn        int64  `json:"expires_in"`
@@ -36,4 +57,15 @@ type GooglePayloadRequestDTO struct {
 	ClientSecret       string `json:"client_secret"`
 	SubjectToken       string `json:"subject_token"`
 	SubjectIssuer      string `json:"subject_issuer"`
+}
+
+type UserFederationKeycloack struct {
+	IdentityProvider string `json:"identityProvider"`
+	UserID           string `json:"userId"`
+	UserName         string `json:"userName"`
+}
+
+type UserFederationRequestKeycloack struct {
+	UserID   string `json:"userId"`
+	UserName string `json:"userName"`
 }
