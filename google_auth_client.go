@@ -20,13 +20,13 @@ func (c KeycloakWebAuthClient) LoginWithGoogle(ctx context.Context, googleToken 
 		if err.Error() == "User already exists" {
 			return nil, err
 		}
-		return nil, errors.NewXgoError("ERROR_H2H_KEYCLOAK_GOOGLE_AUTH", err)
+		return nil, errors.NewHttpError("ERROR_H2H_KEYCLOAK_GOOGLE_AUTH", err, 403, 2)
 	}
 
 	user, err := c.kk.GetUserInfo(ctx, googleRes.AccessToken, c.realm)
 
 	if err != nil {
-		return nil, errors.NewXgoError("ERROR_H2H_KEYCLOAK_GET_USER_INFO", err)
+		return nil, errors.NewHttpError("ERROR_H2H_KEYCLOAK_GET_USER_INFO", err, 401, 2)
 
 	}
 
