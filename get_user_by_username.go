@@ -3,10 +3,12 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
 
+	stdError "errors"
+
 	"github.com/anoaland/xgo"
+	"github.com/anoaland/xgo/errors"
 	"github.com/anoaland/xgo/utils"
 	"github.com/gofiber/fiber/v2"
 )
@@ -48,20 +50,27 @@ func (c KeycloakWebAuthClient) GetUserByUsername(username string) (*UserSuccessR
 	clientResp, err := httpClient.Send()
 
 	if err != nil {
-		respErr := new(UserErrorResponse)
-		json.Unmarshal([]byte(err.Error()), &respErr)
 		log.Println(" ❌ ERROR URL KC GET USER BY USERNAME : " + err.Error())
 
-		if respErr.Error != nil {
-			return nil, errors.New(*respErr.Error)
+		respErr := new(UserErrorResponse)
+
+		err = json.Unmarshal([]byte(err.Error()), &respErr)
+		if err != nil {
+			return nil, err
 		}
+
+		if respErr.Error != nil {
+			return nil, errors.NewHttpError("KEYCLOAK_GET_USER_BY_USERNAME", stdError.New(*respErr.Error),
+				fiber.StatusInternalServerError, 2)
+		}
+
 		return nil, err
 	}
 
 	res := clientResp.([]interface{})
 
 	if len(res) == 0 {
-		return nil, xgo.NewHttpError("email tidak ditemukan, silahkan mendaftarkan email terlebih dahulu", fiber.StatusNotFound)
+		return nil, xgo.NewHttpNotFoundError("KEYCLOAK_USER_NOT_FOUND", stdError.New(c.UserNotFoundMessage))
 	}
 
 	user := res[0].(map[string]interface{})

@@ -5,7 +5,7 @@ go 1.21.6
 require (
 	github.com/Nerzal/gocloak v1.0.0 // indirect
 	github.com/Nerzal/gocloak/v13 v13.9.0
-	github.com/anoaland/xgo v0.5.3
+	github.com/anoaland/xgo v1.4.1
 	github.com/gofiber/fiber/v2 v2.52.5
 )
 
@@ -35,6 +35,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pterm/pterm v0.12.80 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

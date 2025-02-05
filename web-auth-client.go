@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Nerzal/gocloak/v13"
+	"github.com/anoaland/xgo/errors"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -14,24 +14,26 @@ type User interface {
 }
 
 type KeycloakWebAuthClient struct {
-	kk           *gocloak.GoCloak
-	url          string
-	realm        string
-	clientId     string
-	clientSecret string
-	mapUser      User
+	kk                  *gocloak.GoCloak
+	url                 string
+	realm               string
+	clientId            string
+	clientSecret        string
+	mapUser             User
+	UserNotFoundMessage string
 }
 
 func New(url string, realm string, clientId string, clientSecret string, mapUser User) *KeycloakWebAuthClient {
 	kk := gocloak.NewClient(url)
 
 	return &KeycloakWebAuthClient{
-		kk:           kk,
-		url:          url,
-		realm:        realm,
-		clientId:     clientId,
-		clientSecret: clientSecret,
-		mapUser:      mapUser,
+		kk:                  kk,
+		url:                 url,
+		realm:               realm,
+		clientId:            clientId,
+		clientSecret:        clientSecret,
+		mapUser:             mapUser,
+		UserNotFoundMessage: "email tidak ditemukan, silahkan mendaftarkan email terlebih dahulu",
 	}
 }
 
@@ -162,8 +164,7 @@ func (c KeycloakWebAuthClient) SetPasswordUser(ctx context.Context, userId strin
 
 	err = c.kk.SetPassword(ctx, *serviceAccountToken, userId, c.realm, password, false)
 	if err != nil {
-		fmt.Println("❌ ERROR_H2H_KEYCLOAK_SET_PASSWORD_HTTP_REQUEST " + err.Error())
-		return err
+		return errors.NewHttpError("KEYCLOAK_H2H_KEYCLOAK_SET_PASSWORD_HTTP_REQUEST", err, fiber.StatusBadGateway, 2)
 	}
 
 	return nil
