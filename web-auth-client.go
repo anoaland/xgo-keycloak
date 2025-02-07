@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/anoaland/xgo/errors"
+	"github.com/anoaland/xgo"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -164,7 +164,7 @@ func (c KeycloakWebAuthClient) SetPasswordUser(ctx context.Context, userId strin
 
 	err = c.kk.SetPassword(ctx, *serviceAccountToken, userId, c.realm, password, false)
 	if err != nil {
-		return errors.NewHttpError("KEYCLOAK_H2H_KEYCLOAK_SET_PASSWORD_HTTP_REQUEST", err, fiber.StatusBadGateway, 2)
+		return xgo.NewHttpBadGatewayError("KEYCLOAK_H2H_KEYCLOAK_SET_PASSWORD_HTTP_REQUEST", err)
 	}
 
 	return nil
