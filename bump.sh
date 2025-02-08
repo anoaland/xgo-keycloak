@@ -81,8 +81,7 @@ fi
 
 git add info.json
 git commit -m "build: 🔖 bump version to $VERSION"
-
+git push
 
 git tag -a -f $VERSION -m "$VERSION"
-
 git push origin -f $VERSION
