@@ -5,7 +5,7 @@ go 1.21.6
 require (
 	github.com/Nerzal/gocloak v1.0.0 // indirect
 	github.com/Nerzal/gocloak/v13 v13.9.0
-	github.com/anoaland/xgo v1.7.0
+	github.com/anoaland/xgo v1.7.2-alpha.1
 	github.com/gofiber/fiber/v2 v2.52.5
 )
 
